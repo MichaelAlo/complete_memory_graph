@@ -1,16 +1,6 @@
 # Decisions
 
-## Template
----
-### [YYYY-MM-DD] [Short title]
-**Decision:** [What was decided]
-**Rationale:** [Why — what were the alternatives and why this one won]
-**Consequences:** [What this means going forward, what it closes off]
----
-
-## Log
-
-### [YYYY-MM-DD] Initial architecture choice
-**Decision:** [e.g. Use FastAPI over Django]
-**Rationale:** [e.g. Async-first, lighter, better fit for LLM streaming responses]
-**Consequences:** [e.g. No Django admin, no ORM migrations built-in — use Alembic]
+## 2026-05-06
+- Adopt a merged memory architecture: project-local semantic memory, compiled wiki knowledge, and structural code graph.
+- Use `/checkpoint` as the canonical end-of-session maintenance command.
+- Limit graph refresh scope to `src/` to reduce graph noise and maintenance cost.

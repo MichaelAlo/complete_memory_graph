@@ -1,379 +1,281 @@
-# Claude Code Memory System
+# Merged Claude Code Memory Setup
 
-A markdown-based persistent memory architecture for Claude Code.
-Combines two systems:
-1. **Project memory** — gives Claude durable engineering context across sessions
-2. **LLM Wiki** — a Karpathy-style knowledge base Claude builds and maintains from raw sources
+This scaffold merges MichaelAlo's project-local memory architecture with Lucas Rosati's Graphify-oriented Claude Code workflow.
 
----
+It is designed so that `/checkpoint` becomes the single maintenance gateway for the repository:
 
-## Why this exists
+- update semantic memory in `context/`
+- preserve compiled knowledge layers (`raw/`, `wiki/`, `docs/`, `specs/`)
+- run `/lint`
+- refresh the structural code graph from `src/`
 
-Claude Code has no memory between sessions by default.
-Every time you start a new session, Claude starts cold.
+## What this scaffold includes
 
-This system solves that on two levels:
-
-**Level 1 — Project memory (`context/`)**
-Stores your project's state, decisions, architecture, and worklog.
-Claude reads these on demand. You run `/resume` and Claude reconstructs the full session state in seconds.
-
-**Level 2 — Knowledge base (`raw/` + `wiki/`)**
-Instead of re-deriving knowledge from raw documents on every query (RAG),
-Claude reads your source documents once and compiles them into a structured,
-interlinked wiki it actively maintains. Knowledge compounds over time.
-This is Andrej Karpathy's LLM Wiki pattern (GitHub Gist, April 2026).
-
----
-
-## Full file and folder reference
-```
-your-project/
-│
-├── CLAUDE.md ← Auto-loaded by Claude Code. Router + operating rules.
-├── README.md ← This file.
-│
+```text
+.
+├── CLAUDE.md
+├── README.md
+├── .graphifyignore
 ├── .claude/
-│ └── commands/
-│ ├── resume.md ← /resume → reconstruct session state from context/
-│ ├── checkpoint.md ← /checkpoint → write session summary + update worklog
-│ ├── decision.md ← /decision → append a decision to decisions.md
-│ ├── ingest.md ← /ingest → ingest a raw source into the wiki
-│ └── lint.md ← /lint → health-check the wiki
-│
-├── context/ ← PROJECT MEMORY. Claude reads these on demand.
-│ ├── project-overview.md ← Mission, goals, priorities, non-goals, current status
-│ ├── architecture.md ← System design, components, data flow, invariants
-│ ├── decisions.md ← ADR-style log of durable decisions and their rationale
-│ ├── worklog.md ← Current branch, objective, blockers, next actions
-│ ├── domain-notes.md ← Business/domain knowledge that is stable but not code
-│ ├── stakeholders.md ← People, teams, external dependencies, contacts
-│ └── session-summaries/
-│ └── YYYY-MM-DD.md ← One file per session. Written by Claude via /checkpoint.
-│
-├── raw/ ← KARPATHY WIKI: immutable source documents. You own this.
-│ ├── articles/ ← Web articles, blog posts (use Obsidian Web Clipper)
-│ ├── papers/ ← Research papers, PDFs converted to markdown
-│ └── references/ ← API docs, specs, external references
-│
-├── wiki/ ← KARPATHY WIKI: LLM-generated knowledge base. Claude owns this.
-│ ├── index.md ← Master index of all wiki pages with one-line summaries
-│ ├── concepts/ ← Concept pages: definitions, explanations, comparisons
-│ ├── entities/ ← Entity pages: people, tools, systems, organizations
-│ └── summaries/ ← Per-source summaries linked back to raw/
-│
-├── specs/ ← Human-written feature/system specs. Input to Claude.
-│ ├── feature-x.md
-│ └── api-contract.md
-│
-├── docs/ ← Generated documentation. Output from Claude.
-│ ├── api.md
-│ └── onboarding.md
-│
-└── src/ ← Your actual codebase.
+│   ├── settings.json
+│   ├── hooks/
+│   │   └── remind-checkpoint.sh
+│   ├── commands/
+│   │   ├── checkpoint.md
+│   │   └── lint.md
+│   └── skills/
+│       ├── checkpoint/SKILL.md
+│       ├── graph-refresh/SKILL.md
+│       ├── lint/SKILL.md
+│       └── resume/SKILL.md
+├── context/
+│   ├── architecture.md
+│   ├── decisions.md
+│   ├── domain-notes.md
+│   ├── people-and-stakeholders.md
+│   ├── project-overview.md
+│   ├── worklog.md
+│   └── session-summaries/
+├── raw/
+├── wiki/
+├── docs/
+├── specs/
+├── graphify-out/
+├── scripts/
+│   └── refresh_graph.py
+└── src/
 ```
 
----
+## What `/checkpoint` is intended to do
 
-## The two systems explained
+The merged approach assumes `/checkpoint` performs this sequence:
 
-### System 1 — Project memory (`context/`)
+1. Read the live memory files and recent repo state.
+2. Update:
+   - `context/architecture.md`
+   - `context/decisions.md`
+   - `context/worklog.md`
+   - `context/session-summaries/<today>.md`
+3. Invoke `/lint`.
+4. Refresh the code graph for `src/` via `scripts/refresh_graph.py`.
+5. Record the lint outcome and graph refresh outcome in the session summary.
 
-Stores everything Claude needs to know about your project's current state.
-Claude reads these files on demand based on the task type.
-You and Claude maintain them together via the five commands below.
+## Manual setup you still need to do
 
-**You write:** `project-overview.md`, `domain-notes.md`, `stakeholders.md`, `CLAUDE.md`
-**Claude writes:** `decisions.md` (via `/decision`), `worklog.md` and `session-summaries/` (via `/checkpoint`), `architecture.md` (when prompted after structural changes)
+This scaffold is intentionally not magic. You still need to make repository-specific edits.
 
-### System 2 — LLM Wiki (`raw/` + `wiki/`)
+### Required manual edits
 
-Inspired by Andrej Karpathy's LLM Knowledge Bases pattern (April 2026).
-The key insight: instead of rediscovering knowledge from raw documents on every query,
-the LLM compiles them once into a structured wiki and keeps it current as new sources arrive.
+Before real use, update these files:
 
-**You own:** `raw/` — drop sources here, never modify them. This is your source of truth.
-**Claude owns:** `wiki/` — Claude creates pages, updates them, maintains cross-references. You only read it.
-**You co-evolve:** The wiki schema section in `CLAUDE.md` that defines conventions and workflows.
+- `CLAUDE.md` — replace placeholder project commands, stack assumptions, and constraints.
+- `context/project-overview.md` — describe the real project mission, priorities, and constraints.
+- `context/architecture.md` — replace placeholders with the real system structure and invariants.
+- `context/decisions.md` — seed historical decisions so Claude has anchors.
+- `context/worklog.md` — set the current branch, active objective, blockers, and next steps.
+- `.claude/commands/lint.md` — ensure the fallback order matches your stack.
+- `scripts/refresh_graph.py` — change the graph target if your code does not live under `src/`.
 
-The three wiki operations:
-- **Ingest** — drop a file in `raw/`, run `/ingest raw/[file]`
-- **Query** — ask: *"Query the wiki about [topic]"*
-- **Lint** — run `/lint` weekly for a health check
+### Required installs
 
----
+This scaffold assumes:
 
-## File reference
+- `python3` is available on PATH
+- Claude Code is installed and supports project-level `.claude/` configuration
+- optionally, Graphify is installed if you want a real graph instead of fallback file indexing
 
-### `CLAUDE.md`
-The control file. Auto-loaded by Claude Code every session.
-Contains: project identity, context loading policy, wiki routing policy, operating rules, real commands, hard constraints, output style, wiki schema.
-**Keep it short (40–80 lines).** It is a router and rule file, not a knowledge dump.
-**You maintain it.** Update when project norms, stack, or wiki conventions change.
+Recommended Graphify installation:
 
----
+- `uv tool install graphifyy`
+- or `pipx install graphifyy`
+- then `graphify install`
+- optionally `graphify hook install`
 
-### `.claude/commands/resume.md` — `/resume`
-Run at the **start of every session**.
-Claude reads `CLAUDE.md`, `context/worklog.md`, the latest session summary, and recent decisions.
-Outputs: current objective, last session summary, active branch/spec, next actions, open questions.
-Do not start working until you have verified the output is accurate.
+### Skills and commands already included
 
----
+This scaffold already includes:
 
-### `.claude/commands/checkpoint.md` — `/checkpoint`
-Run at the **end of every session**.
-Claude writes `context/session-summaries/YYYY-MM-DD.md` and updates `context/worklog.md`.
-Also flags if `context/architecture.md` needs updating based on what changed this session.
-Review the output before closing. Correct anything inaccurate.
+- `.claude/commands/checkpoint.md`
+- `.claude/commands/lint.md`
+- `.claude/skills/checkpoint/SKILL.md`
+- `.claude/skills/graph-refresh/SKILL.md`
+- `.claude/skills/lint/SKILL.md`
+- `.claude/skills/resume/SKILL.md`
 
----
+You do **not** need to create those from scratch unless you want to rewrite them.
 
-### `.claude/commands/decision.md` — `/decision <text>`
-Run **immediately after any durable design decision**.
-Claude appends a formatted ADR entry to `context/decisions.md`.
-Do not batch decisions. Log them the moment they are made.
+### Optional manual additions you may want
 
-Example:
-```
-/decision Use Alembic for DB migrations instead of a custom system — integrates cleanly with SQLAlchemy.
-```
+Depending on your workflow, you may also want to add:
 
----
+- `.claude/commands/ingest.md` for `raw/` → `wiki/` compilation
+- `.claude/commands/decision.md` for ADR capture
+- `.claude/skills/wiki/SKILL.md` for compiled-knowledge maintenance
+- a repo-specific test command inside `CLAUDE.md`
+- a real Graphify configuration if you want clustering or wiki generation
 
-### `.claude/commands/ingest.md` — `/ingest raw/[file]`
-Run when you **add a new source** to `raw/`.
-Claude reads the source, discusses key takeaways with you, writes a summary page
-to `wiki/summaries/`, updates relevant `wiki/concepts/` and `wiki/entities/` pages,
-updates `wiki/index.md`, and flags any contradictions with existing wiki content.
-A single source typically touches 10–15 wiki pages.
+## Integrate an existing project
 
-Example:
-```
-/ingest raw/articles/attention-is-all-you-need.md
-```
+Use this section when you already have a repository and want to retrofit the merged memory system.
 
----
+### Step 1: copy the scaffold into the existing repo
 
-### `.claude/commands/lint.md` — `/lint`
-Run **weekly** to keep the wiki healthy.
-Claude reads `wiki/index.md`, scans all pages, and produces a structured report covering:
-contradictions, stale claims, orphan pages, missing cross-references, and data gaps.
-Claude then asks which issues to fix immediately.
+Copy these items into the repository root:
 
----
+- `CLAUDE.md`
+- `.claude/`
+- `.graphifyignore`
+- `context/`
+- `raw/`
+- `wiki/`
+- `docs/`
+- `specs/`
+- `scripts/refresh_graph.py`
+- `graphify-out/`
 
-### `context/project-overview.md`
-Mission, goals, non-goals, current priorities, status, success criteria, key constraints.
-**You maintain it.** Update at milestones or when priorities shift. Not every session.
+Do not blindly overwrite an existing `README.md`; merge the relevant instructions into the project's real README.
 
----
+### Step 2: map the scaffold to the actual codebase
 
-### `context/architecture.md`
-System map: components, locations in `src/`, data flow, external dependencies, invariants, tech debt.
-**Claude maintains it** when prompted after structural code changes.
-Prompt: *"Update context/architecture.md to reflect the change we just made."*
+Immediately update:
 
----
+- actual lint command
+- actual test/typecheck commands
+- actual code root if it is not `src/`
+- actual architecture in `context/architecture.md`
+- actual historical decisions in `context/decisions.md`
+- actual current status in `context/worklog.md`
 
-### `context/decisions.md`
-Permanent ADR log. One entry per decision, never deleted.
-**Claude maintains it** via `/decision`.
-Superseded decisions should be annotated, not removed.
+### Step 3: validate the maintenance loop
 
----
+Inside Claude Code, test this sequence:
 
-### `context/worklog.md`
-Live state of work: current branch, active spec, objective, in-progress tasks, blockers, next actions, open questions.
-**Claude maintains it** via `/checkpoint` every session end.
-Most-read file in the system. A stale worklog breaks continuity.
+1. `/resume`
+2. make a small repo change
+3. `/checkpoint`
 
----
+Then verify that:
 
-### `context/domain-notes.md`
-Stable business/domain knowledge: core concepts, business rules, compliance constraints, glossary.
-**You maintain it.** Update when domain rules change or Claude repeatedly misunderstands a domain concept.
+- `context/architecture.md` changed only if the architecture materially changed
+- `context/decisions.md` was appended only with durable decisions
+- `context/worklog.md` reflects current next actions
+- `context/session-summaries/<today>.md` was updated
+- `graphify-out/` contains a refreshed status or graph artifact
 
----
+### Step 4: tighten the placeholders
 
-### `context/stakeholders.md`
-Team members, external dependencies, contacts, key relationships.
-**You maintain it.** Update when team or dependencies change.
+After the first successful run, remove generic filler from all starter files so Claude is not learning from boilerplate.
 
----
+## Set up a new project
 
-### `context/session-summaries/YYYY-MM-DD.md`
-Compact session record: what was done, decisions made, current state, next actions, open questions.
-**Claude writes it** via `/checkpoint`. One file per day.
-Retain last 30 days. Delete older files once `worklog.md` reflects current state.
+Use this section when you are starting from an empty repository.
 
----
+### Step 1: start with the scaffold in place
 
-### `raw/`
-Immutable source documents for the wiki. Articles, papers, references.
-**You own it.** Drop files here. Never modify them after adding.
-Use Obsidian Web Clipper to capture web articles as markdown.
-This is the source of truth for the wiki layer.
+Create the repo with this structure from day zero:
 
----
+- `CLAUDE.md`
+- `.claude/`
+- `context/`
+- `raw/`
+- `wiki/`
+- `docs/`
+- `specs/`
+- `scripts/refresh_graph.py`
+- `src/`
 
-### `wiki/`
-LLM-generated knowledge base. Summaries, concept pages, entity pages, cross-references.
-**Claude owns it entirely.** You only read it, never manually edit it.
-Grows and deepens every time you ingest a new source.
-Sub-folders: `concepts/`, `entities/`, `summaries/`.
-`index.md` is the master index of all pages.
+This is cleaner than retrofitting because memory and maintenance conventions become part of the repo contract immediately.
 
----
+### Step 2: fill the truth files before heavy coding
 
-### `wiki/index.md`
-Master index of all wiki pages. Claude updates it on every ingest and every lint pass.
-Contains: page title, one-line summary, link, last updated date.
-Seed it with the topics you want the wiki to cover before the first ingest.
+Complete these before substantial implementation:
 
----
+- `CLAUDE.md`
+- `context/project-overview.md`
+- `context/architecture.md`
+- `context/worklog.md`
 
-### `specs/`
-Human-written feature and system specifications. Written before asking Claude to build anything.
-Each file covers: purpose, inputs, outputs, constraints, acceptance criteria, open questions.
-**You write it.** One file per feature or system component.
-Rule: never ask Claude to build a complex feature without a spec file first.
+At minimum, define purpose, constraints, source root, canonical commands, and module boundaries.
 
----
+### Step 3: install dependencies
 
-### `docs/`
-Project documentation output. Claude generates and updates these after code changes.
-Contains: `api.md` (endpoint reference), `onboarding.md` (new developer setup).
-Prompt Claude: *"Update docs/api.md to reflect the endpoint we just added."*
+- install Graphify if desired
+- ensure `python3` is available
+- ensure the repo has a working lint command
+- optionally enable project hooks through `.claude/settings.json`
 
----
+### Step 4: adopt the operating rhythm
 
-### `src/`
-Your actual codebase. The memory system describes it; it does not contain the memory system.
+Recommended rhythm:
 
----
+- start work with `/resume`
+- capture durable design choices in `context/decisions.md`
+- use `raw/` for source material, `wiki/` for compiled knowledge
+- finish meaningful work with `/checkpoint`
 
-## The five commands
+## Maintain an existing project
 
-| Command | When | What it does |
-|---|---|---|
-| `/resume` | Start of every session | Reads context files, reports current state |
-| `/checkpoint` | End of every session | Writes session summary, updates worklog |
-| `/decision <text>` | Immediately after any design decision | Logs ADR entry to decisions.md |
-| `/ingest raw/[file]` | When adding a new source to the wiki | Reads source, writes summary, updates concept/entity pages and index |
-| `/lint` | Weekly | Health-checks wiki for contradictions, orphans, stale claims, gaps |
+This section is about ongoing maintenance after setup.
 
----
+### Per session
 
-## Session protocol
+At the end of a meaningful work session:
 
-### Starting a session
-```
-/resume
-```
+- run `/checkpoint`
+- review what it wrote to the daily summary
+- ensure it did not add transient noise to `architecture.md`
+- ensure `worklog.md` has a clean next action
 
-Verify the output is accurate. Correct any stale context file before starting work.
+### Weekly maintenance
 
-### During a session
+Once a week for active projects:
 
-| Situation | Action |
+- prune duplicated facts across `architecture.md`, `decisions.md`, and summaries
+- clear stale blockers from `worklog.md`
+- ensure important design decisions are in `decisions.md`
+- verify `scripts/refresh_graph.py` still points at the correct source root
+- review whether `raw/` contains material that should be compiled into `wiki/`
+
+### Monthly maintenance
+
+Once a month:
+
+- reduce bloat in `CLAUDE.md`
+- archive or merge noisy session summaries
+- mark deprecated decisions explicitly instead of silently replacing them
+- inspect whether `docs/`, `specs/`, and `wiki/` are drifting or overlapping
+
+### After major refactors
+
+After any major refactor:
+
+- run `/checkpoint`
+- verify lint still passes
+- verify graph refresh still targets the correct code root
+- manually update `context/architecture.md` if subsystem boundaries changed
+- review whether older decisions should be marked superseded
+
+## File roles
+
+| Path | Role |
 |---|---|
-| Made a design decision | `/decision <text>` immediately |
-| Added a module or changed system structure | *"Update context/architecture.md to reflect [change]"* |
-| Starting a new feature | Write `specs/feature-name.md` first |
-| Adding new knowledge source | Drop in `raw/`, then `/ingest raw/[filename]` |
-| Need domain/research context | *"Query the wiki about [topic]"* |
+| `CLAUDE.md` | Repo operating contract and routing rules |
+| `context/architecture.md` | Enduring technical structure and invariants |
+| `context/decisions.md` | Durable decisions and tradeoffs |
+| `context/worklog.md` | Current state, blockers, next actions |
+| `context/session-summaries/` | Daily or session-based change records |
+| `raw/` | Immutable source material |
+| `wiki/` | Compiled knowledge |
+| `docs/` | Human-facing documentation |
+| `specs/` | Product and engineering specifications |
+| `graphify-out/` | Structural graph outputs |
 
-### Ending a session
-```
-/checkpoint
-```
+## Sanity checks before relying on it
 
-Review and correct the output before closing.
+Before trusting the setup, verify:
 
----
-
-## Wiki maintenance
-
-### Ingest a new source
-```
-Drop file into raw/articles/, raw/papers/, or raw/references/
-Then run: /ingest raw/[filename]
-```
-
-Claude reads the source, writes a summary page, updates relevant concept and entity pages,
-updates `wiki/index.md`, and appends to the ingest log.
-A single source typically touches 10–15 wiki pages.
-
-### Query the wiki
-```
-"Query the wiki about [topic] and give me a synthesis."
-```
-
-Claude searches relevant pages, reads them, and synthesizes an answer.
-Output can be a markdown page, comparison table, or summary.
-
-### Lint the wiki (weekly)
-```
-/lint
-```
-
-
----
-
-## Weekly maintenance (5 minutes)
-
-| Task | File | Action |
-|---|---|---|
-| Archive old done items | `context/worklog.md` | Remove items older than 2 weeks |
-| Check for contradictions | `context/decisions.md` | Annotate superseded entries |
-| Verify structure matches code | `context/architecture.md` | Compare against real `src/` |
-| Clean old summaries | `context/session-summaries/` | Delete files older than 30 days |
-| Update priorities | `context/project-overview.md` | Refresh if focus has shifted |
-| Lint wiki | `wiki/` | Run `/lint` |
-
----
-
-## What degrades the system
-
-| Failure mode | Effect | Prevention |
-|---|---|---|
-| Skipping `/checkpoint` | Worklog goes stale, next `/resume` is inaccurate | Make it the last thing you type every session |
-| Bloating `CLAUDE.md` | Instructions dilute, Claude loads noise | Move knowledge to `context/`; keep `CLAUDE.md` as rules only |
-| Not logging decisions | Future Claude contradicts past choices | Use `/decision` immediately, not retroactively |
-| Never updating `architecture.md` | Claude misunderstands codebase structure | Prompt an update after every structural change |
-| Editing files in `wiki/` manually | Wiki loses integrity, Claude loses trust in its own layer | Never edit `wiki/` manually. Claude owns it. |
-| Adding modified files to `raw/` | Source of truth is corrupted | `raw/` is append-only and immutable |
-| Leaving placeholders unfilled | Claude operates without real context | Complete the first-time setup checklist below |
-
----
-
-## First-time setup checklist
-
-**Project memory layer**
-- [ ] Fill in `CLAUDE.md` commands section with real test/lint/run/build commands
-- [ ] Fill in `context/project-overview.md` with real mission, goals, non-goals
-- [ ] Fill in `context/architecture.md` with real components and data flow
-- [ ] Add 3–5 real past decisions to `context/decisions.md`
-- [ ] Fill in `context/worklog.md` with current branch, objective, next actions
-- [ ] Write `context/session-summaries/` seed summary manually
-
-**Wiki layer**
-- [ ] Seed `wiki/index.md` with the topics you want this wiki to cover
-- [ ] Add `.gitkeep` to `raw/articles/`, `raw/papers/`, `raw/references/` and commit
-- [ ] Drop first source into `raw/` and run `/ingest` to verify the pipeline works
-
-**Verify**
-- [ ] Run `/resume` and confirm the output reflects reality
-- [ ] Run a test ingest and confirm `wiki/index.md` was updated
-
-Once all boxes are checked, the system is operational.
-
----
-
-## The one rule
-
-> **`/resume` to start. `/checkpoint` to end. `/decision` for every real choice.**
-
-These three habits keep the project memory alive.
-For the wiki: **ingest sources as you find them, lint weekly.**
+- `/checkpoint` updates the expected four context files
+- `/lint` runs the correct repo command
+- `scripts/refresh_graph.py` points at the actual code root
+- `graphify-out/refresh-status.json` is created after a refresh
+- placeholders have been replaced with real project data

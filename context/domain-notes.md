@@ -1,21 +1,15 @@
 # Domain Notes
 
-## Core concepts
-[Define domain-specific terms Claude might not know]
-e.g. "A 'run' in this project means a single end-to-end pipeline execution"
+Capture business, product, or problem-domain facts that are stable enough to matter repeatedly.
 
-## Business rules
-- [e.g. Users can only have one active subscription at a time]
-- [e.g. All prices are stored in EUR cents, never floats]
+## Terms
+- Term:
+- Meaning:
 
-## External systems we integrate with
-- [System name]: [what it does, API docs URL if any]
+## Rules
+- Rule 1:
+- Rule 2:
 
-## Compliance / regulatory notes
-- [e.g. GDPR: user data must be deletable within 30 days of request]
-- [e.g. PII fields: name, email, IP address — never log raw]
-
-## Glossary
-| Term | Definition |
-|---|---|
-| [term] | [definition] |
+## Edge cases
+- Edge case 1:
+- Edge case 2:
