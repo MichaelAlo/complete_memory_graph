@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+coverage/
+.graphify/
+graphify-out/
+wiki/
+raw/
+docs/
+specs/
+context/
