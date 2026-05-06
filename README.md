@@ -22,12 +22,15 @@ It is designed so that `/checkpoint` becomes the single maintenance gateway for 
 │   │   └── remind-checkpoint.sh
 │   ├── commands/
 │   │   ├── checkpoint.md
+│   │   ├── decision.md
+│   │   ├── ingest.md
 │   │   └── lint.md
 │   └── skills/
 │       ├── checkpoint/SKILL.md
 │       ├── graph-refresh/SKILL.md
 │       ├── lint/SKILL.md
-│       └── resume/SKILL.md
+│       ├── resume/SKILL.md
+│       └── wiki/SKILL.md
 ├── context/
 │   ├── architecture.md
 │   ├── decisions.md
@@ -96,22 +99,32 @@ Recommended Graphify installation:
 This scaffold already includes:
 
 - `.claude/commands/checkpoint.md`
+- `.claude/commands/decision.md`
+- `.claude/commands/ingest.md`
 - `.claude/commands/lint.md`
 - `.claude/skills/checkpoint/SKILL.md`
 - `.claude/skills/graph-refresh/SKILL.md`
 - `.claude/skills/lint/SKILL.md`
 - `.claude/skills/resume/SKILL.md`
+- `.claude/skills/wiki/SKILL.md`
 
 You do **not** need to create those from scratch unless you want to rewrite them.
+
+### Repo-specific commands to customize
+
+This scaffold now includes placeholder repo commands inside `CLAUDE.md`.
+You should replace them with your real commands for:
+
+- lint
+- test
+- typecheck
 
 ### Optional manual additions you may want
 
 Depending on your workflow, you may also want to add:
 
-- `.claude/commands/ingest.md` for `raw/` → `wiki/` compilation
-- `.claude/commands/decision.md` for ADR capture
-- `.claude/skills/wiki/SKILL.md` for compiled-knowledge maintenance
-- a repo-specific test command inside `CLAUDE.md`
+- a repo-specific build command inside `CLAUDE.md`
+- a repo-specific dev command inside `CLAUDE.md`
 - a real Graphify configuration if you want clustering or wiki generation
 
 ## Integrate an existing project
@@ -279,3 +292,10 @@ Before trusting the setup, verify:
 - `scripts/refresh_graph.py` points at the actual code root
 - `graphify-out/refresh-status.json` is created after a refresh
 - placeholders have been replaced with real project data
+
+
+## Additional command roles
+
+- `/ingest` compiles evidence from `raw/` into reusable pages in `wiki/`.
+- `/decision` captures durable ADR-style entries in `context/decisions.md`.
+- `wiki` skill governs maintenance of compiled knowledge and de-duplication across `wiki/`.

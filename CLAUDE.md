@@ -46,6 +46,12 @@ Replace these with the real repo commands.
 - Lint: `npm run lint`
 - Test: `npm test`
 - Typecheck: `npm run typecheck`
+- Dev: `npm run dev`
 
 ## Constraints to update manually
 Replace this section with the real stack, deployment constraints, privacy requirements, and coding conventions for the repository.
+
+## Additional workflow commands
+- Use `/ingest` to convert `raw/` material into curated `wiki/` pages.
+- Use `/decision` to append durable ADR-style decisions to `context/decisions.md`.
+- Use the `wiki` skill when maintaining compiled semantic knowledge.
