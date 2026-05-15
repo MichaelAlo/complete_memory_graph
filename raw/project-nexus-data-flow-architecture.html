@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Nexus - Detailed Data Flow Architecture</title>
+  <style>
+    :root {
+      --bg:#f7f6f2; --surface:#fff; --surface2:#eef6f5; --text:#1f2937; --muted:#59616d;
+      --accent:#0f766e; --accent2:#0b5f59; --border:#d6d3d1; --shadow:0 8px 24px rgba(0,0,0,.06);
+      --max:1180px;
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+    .wrap{max-width:var(--max);margin:0 auto;padding:32px 20px 64px}.hero,section{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow)}
+    .hero{padding:28px;margin-bottom:20px} section{padding:24px;margin:18px 0} h1,h2,h3{line-height:1.2} h1{font-size:2rem;margin:0 0 10px} h2{font-size:1.35rem;margin:0 0 14px;color:var(--accent)} h3{font-size:1rem;margin:18px 0 8px}
+    .muted{color:var(--muted)} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+    .card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px} .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#dff4f1;color:#115e59;font-size:.85rem;margin:4px 8px 0 0}
+    table{width:100%;border-collapse:collapse;margin-top:10px} th,td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top} th{background:#e7f4f2}
+    .flow{display:grid;gap:14px}.lane{border:1px dashed var(--border);border-radius:14px;padding:16px;background:#fafaf9}.lane h3{margin-top:0}.badge{font-size:.8rem;padding:4px 8px;border-radius:999px;background:#ecfeff;color:#155e75;display:inline-block;margin-bottom:8px}
+    .note{border-left:4px solid var(--accent);background:#f0fdfa;padding:14px 16px;border-radius:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Project Nexus - Detailed Data Flow Architecture</h1>
+      <p class="muted">Detailed draft architecture for a MySQL-first curated analytics platform acting as the Project Nexus data backbone. This draft assumes Governance-hosted reporting surfaces, Data Lake-controlled certified snapshots, GitLab-coupled documentation and pipelines, and a strict separation between generic Lake Functions and specialist module logic.</p>
+      <div>
+        <span class="pill">Architecture status: Draft</span>
+        <span class="pill">Platform: MySQL + Python + GitLab</span>
+        <span class="pill">Pattern: curated analytics backbone</span>
+        <span class="pill">Integration: hub-and-spoke</span>
+      </div>
+    </div>
+
+    <section>
+      <h2>1. Architecture position</h2>
+      <p>The platform should be described honestly as a MySQL-first curated analytics platform, not as a full cloud-native lakehouse. It still behaves like a Data Lake operationally because it centralises ingestion, standardisation, MDM, lineage, access control, quality checks, reusable data products, and reporting snapshots.</p>
+      <p>This positioning matters because it prevents overpromising. The immediate goal is to make Project Nexus operable, auditable, and maintainable without prematurely forcing an Azure-first lakehouse before the scale and concurrency justify it.</p>
+    </section>
+
+    <section>
+      <h2>2. Recommended system design</h2>
+      <div class="grid">
+        <div class="card"><h3>Storage</h3><p>MySQL schemas for raw, standardised, curated, reference, audit, and reporting snapshot layers.</p></div>
+        <div class="card"><h3>Compute</h3><p>Python jobs for extraction, standardisation, validation, promotion, snapshotting, and dataset publication.</p></div>
+        <div class="card"><h3>Control</h3><p>GitLab repository for SQL, Python, mappings, MDM definitions, Wiki pages, changelogs, and release tags.</p></div>
+        <div class="card"><h3>Consumption</h3><p>Governance-facing reporting and compliance surfaces; module-specific consumers read standardised or curated datasets.</p></div>
+      </div>
+    </section>
+
+
+    <section>
+      <h2>2.5 Where the modules sit</h2>
+      <p>The modules also sit on the MySQL platform, but not as part of the shared Lake layer. Each module has its own MySQL schema or database for specialist logic, working tables, run outputs, and module-owned state, while the shared Data Lake schemas hold certified cross-module datasets, MDM, reference data, and immutable snapshots.</p>
+      <p>This gives one operational stack with clear separation: the Data Lake prepares and certifies data; modules crunch it; Governance consumes it. That matches the project boundary in the source document, where the Data Lake is the integration backbone and module logic remains specialist, module-owned work.</p>
+    </section>
+
+    <section>
+      <h2>2.6 Why not a true lakehouse</h2>
+      <p>The immediate problem is not primarily storage scale; it is governance, traceability, and controlled cross-module reuse. A curated MySQL-first platform gives us the fastest path to a reliable operating model, while still preserving the option to move to Azure when storage/compute separation, semi-structured data volume, or orchestration complexity actually justify it.</p>
+      <div class="grid">
+        <div class="card"><h3>1. Structured first</h3><p>The work is dominated by canonical entities, reporting-ready facts, and governed reference data, not broad object-storage landing of semi-structured files.</p></div>
+        <div class="card"><h3>2. Control first</h3><p>The system needs MDM, lineage, reconciliation, and audit-stamped snapshots before it needs distributed lakehouse-style compute separation.</p></div>
+        <div class="card"><h3>3. Faster delivery</h3><p>MySQL-first is quicker to stand up, easier to maintain, and easier for a small team to reason about than a cloud-native lakehouse from day one.</p></div>
+        <div class="card"><h3>4. Lower burden</h3><p>Operational burden stays manageable while the team still has room to tolerate manual scheduling and Python-based pipelines.</p></div>
+        <div class="card"><h3>5. Migration path stays open</h3><p>When volume, concurrency, or object-like storage needs become real constraints, Azure becomes a justified evolution rather than a premature default.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Layer model</h2>
+      <table>
+        <thead><tr><th>Layer</th><th>Storage intent</th><th>Typical content</th><th>Owners</th></tr></thead>
+        <tbody>
+          <tr><td>Raw</td><td>Faithful ingestion landing</td><td>CDC extracts, external feed loads, module output drops</td><td>Data Lake team</td></tr>
+          <tr><td>Standardised</td><td>Typed, cleaned, conformed staging</td><td>Normalised tables, de-duplicated entities, harmonised code lists</td><td>Data Lake team</td></tr>
+          <tr><td>Curated</td><td>Reusable certified datasets</td><td>Shared dimensions, validated facts, mastered entities, module-ready extracts</td><td>Data Lake team with domain owners</td></tr>
+          <tr><td>Reporting snapshot</td><td>Immutable report evidence</td><td>Published-report datasets, audit-stamped extracts, point-in-time versions</td><td>Data Lake team + Governance</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. End-to-end flow</h2>
+      <div class="flow">
+        <div class="lane">
+          <div class="badge">Step 1</div>
+          <h3>Source ingestion</h3>
+          <p>Core Admin DB data is replicated one-way into Raw. External feeds such as market data, investment data, regulatory templates, expense files, and reference files are also loaded into Raw. Module outputs that must be shared downstream are landed in controlled intake tables.</p>
+        </div>
+        <div class="lane">
+          <div class="badge">Step 2</div>
+          <h3>Standardisation and conformance</h3>
+          <p>Raw inputs are typed, validated, deduplicated, code lists are harmonised, identifiers are normalised, and domain-level conformance rules are applied. This is where source-system noise is removed without injecting specialist actuarial or accounting meaning.</p>
+        </div>
+        <div class="lane">
+          <div class="badge">Step 3</div>
+          <h3>MDM and curated publication</h3>
+          <p>Mastered entities are assembled, reference versions applied, lineage linked, and reusable datasets are published into Curated. These become the certified inputs for Cashfluid, Sun 2.x, Moody's 2.x, HKRBC Reporting, Transactional, and Governance.</p>
+        </div>
+        <div class="lane">
+          <div class="badge">Step 4</div>
+          <h3>Module computation</h3>
+          <p>Each module applies specialist logic to curated inputs. Outputs that matter cross-module are returned to the Data Lake through controlled interfaces rather than point-to-point links.</p>
+        </div>
+        <div class="lane">
+          <div class="badge">Step 5</div>
+          <h3>Governance consumption and reporting</h3>
+          <p>Governance reads certified curated outputs and reporting snapshots to drive board packs, compliance workflows, attestations, and reporting access. Published reporting outputs are backed by immutable Data Lake snapshots so every figure can be reproduced.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. Proposed app-to-module binding</h2>
+      <table>
+        <thead>
+          <tr><th>Module</th><th>Owns</th><th>Reads from Lake</th><th>Writes back to Lake</th><th>Governance interaction</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Coreflexi / Core Admin DB</td><td>Operational source records</td><td>None required initially</td><td>One-way feed only via extraction</td><td>Indirect through downstream evidence and control views</td></tr>
+          <tr><td>Data Lake</td><td>Integration, MDM, quality, lineage, snapshots</td><td>Raw and source loads</td><td>Certified datasets</td><td>Provides oversight-ready datasets and audit evidence</td></tr>
+          <tr><td>Cashfluid</td><td>Actuarial projection logic</td><td>Policy, assumptions, scenarios, expense data, reference data</td><td>ECF, scenario outputs, measurement inputs</td><td>Provides parity evidence and model output evidence</td></tr>
+          <tr><td>Sun 2.x</td><td>Posting logic and GL operations</td><td>Journal feeds, mapping inputs, reference data</td><td>Posted entries, balances, close outputs</td><td>Provides close evidence, control outputs, reconciliations</td></tr>
+          <tr><td>Moody's 2.x</td><td>HKFRS17 measurement and disclosure logic</td><td>Cashfluid outputs, expense feeds, reference data</td><td>Disclosures, journals, roll-forward outputs</td><td>Provides disclosure evidence and approval artefacts</td></tr>
+          <tr><td>Transactional</td><td>Deal logic and diligence outputs</td><td>Portfolio and counterparty reference data</td><td>Deal outputs and evidence sets as needed</td><td>Provides memo and diligence artefacts</td></tr>
+          <tr><td>HKRBC Reporting</td><td>Pillar 1 capital and returns</td><td>Actuarial inputs, asset data, regulatory templates</td><td>Capital outputs, return data, journal outputs</td><td>Provides submission and regulatory evidence</td></tr>
+          <tr><td>Governance</td><td>Attestation, oversight, board/reporting access</td><td>Certified outputs and report snapshots</td><td>Workflow statuses, attestation evidence metadata if required</td><td>Owns user-facing reporting and oversight surfaces</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>6. Reporting marts stance</h2>
+      <p>Reporting marts should live logically in Governance because they are consumption products tied to approval, oversight, attestation, and board or regulatory dissemination. However, the exact data behind each published output should remain materialised in the Data Lake as immutable reporting snapshots.</p>
+      <div class="note">
+        This creates a clean split: Governance owns the front-end and workflow context; the Data Lake owns the certified, versioned, reproducible data behind every published result.
+      </div>
+    </section>
+
+    <section>
+      <h2>7. Lake Functions vs Module Functions</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Lake Functions</h3>
+          <ul>
+            <li>Ingestion and intake control</li>
+            <li>Standardisation and deduplication</li>
+            <li>Code-list harmonisation</li>
+            <li>MDM survivorship</li>
+            <li>Reference-data versioning</li>
+            <li>Snapshotting</li>
+            <li>Lineage capture</li>
+            <li>Data quality controls</li>
+            <li>Access governance and masking</li>
+            <li>Generic reusable aggregations only</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Module Functions</h3>
+          <ul>
+            <li>Liability cash-flow projection</li>
+            <li>Journal validation and posting-rule logic</li>
+            <li>CSM roll-forward and disclosure assembly</li>
+            <li>PCR, MCR, BEL, MOCE, TVOG capital logic</li>
+            <li>Transactional carve-out and deal logic</li>
+            <li>Governance attestation and workflow logic</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>8. Pipeline and orchestration approach</h2>
+      <p>Given the tolerance for operational burden, the first release can use scheduled Python jobs with disciplined logging, run IDs, and idempotent load patterns. Each job should support reruns, partial backfills, and replay using extract cutoffs, source batch IDs, or effective dates.</p>
+      <p>Move to an orchestrator only when dependency chaining, retries, environment promotion, or monitoring become too fragile to manage manually. That means cron or equivalent first, orchestrator later.</p>
+    </section>
+
+    <section>
+      <h2>9. Controls, validation, and recovery</h2>
+      <table>
+        <thead><tr><th>Control area</th><th>Recommendation</th></tr></thead>
+        <tbody>
+          <tr><td>Idempotency</td><td>All ingestion and publication jobs should be rerunnable without duplicating results.</td></tr>
+          <tr><td>Backfills</td><td>Support date-range or batch-range reprocessing with versioned outputs.</td></tr>
+          <tr><td>Logging</td><td>Capture run ID, source cut, row counts, validation results, and release tag.</td></tr>
+          <tr><td>Data validation</td><td>Apply row-count, null, uniqueness, referential, and reconciliation checks before promotion.</td></tr>
+          <tr><td>Alerting</td><td>Trigger alerts on failed loads, reconciliation breaks, stale datasets, and unauthorized schema drift.</td></tr>
+          <tr><td>Recovery</td><td>Retain raw loads, change versions, and snapshots so a curated release can be rebuilt exactly.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>10. Security and access</h2>
+      <ul>
+        <li>Separate technical write access from analyst read access.</li>
+        <li>Mask PII in non-privileged views and datasets.</li>
+        <li>Restrict sensitive domains by role, domain, and business need.</li>
+        <li>Log data access to sensitive datasets and report snapshots.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>11. What to build first</h2>
+      <ol>
+        <li>Raw and standardised ingestion path from Core Admin DB and the highest-priority external feeds.</li>
+        <li>First-wave MDM domains: Customer, Policy, Product, CoA mapping, Currency, Calendar.</li>
+        <li>Lineage, quality, and snapshot controls before adding too many downstream consumers.</li>
+        <li>Certified curated datasets for the most urgent module consumers.</li>
+        <li>Governance-facing reporting snapshot handoff and audit trail model.</li>
+      </ol>
+    </section>
+
+
+    <section>
+      <h2>13. Open questions and current answers</h2>
+      <table>
+        <thead><tr><th>Open question from Matt</th><th>Current answer</th></tr></thead>
+        <tbody>
+          <tr><td>Which functions are truly generic Lake Functions, and which belong in modules?</td><td>Generic reusable data engineering and governance belong in the Lake; specialist actuarial, accounting, regulatory, compliance, and transactional logic belongs in modules.</td></tr>
+          <tr><td>Should reporting marts sit in Governance or remain inside the Data Lake boundary?</td><td>Governance owns the marts; the Data Lake retains immutable reporting snapshots behind them.</td></tr>
+          <tr><td>What is the exact role split between the Data Lake team, Coreflexi, and the module owners for short-term reporting needs?</td><td>Leave for later / Matt, except for any urgent reporting-period items that must remain in Coreflexi temporarily.</td></tr>
+          <tr><td>What is the precise review workflow between project leads and tech reviewers?</td><td>Project leads build; tech reviewers check at agreed gates. Exact cadence still needs final owner agreement.</td></tr>
+          <tr><td>How will Governance bind to each module in practice?</td><td>Leave for later / Matt, but Governance should be the oversight, compliance, attestation, and reporting-access layer.</td></tr>
+          <tr><td>Which source data must be mastered first in MDM?</td><td>Customer, Policy, Product, Chart of Accounts mapping, Currency, and Calendar are the first-wave domains; Counterparty and investment reference data are likely second-wave unless immediately required.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+
+    <section>
+      <h2>14. Consistency check</h2>
+      <p>The architecture and MDM drafts now use the same operating logic: MySQL-first, module-owned crunching, Lake-owned certification and control, Governance-owned consumption and oversight, and an Azure migration only when scale or orchestration complexity justifies it.</p>
+    </section>
+
+    <section>
+      <h2>12. What to postpone</h2>
+      <ul>
+        <li>Azure-native lakehouse tooling unless MySQL storage, query concurrency, or binary/object-scale storage become painful.</li>
+        <li>Heavy orchestration tools until cron-style scheduling becomes operationally unsafe.</li>
+        <li>Broad document repository functions inside MySQL beyond metadata and structured tracking.</li>
+        <li>Overly ambitious real-time streaming unless a real freshness need appears.</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

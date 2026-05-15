@@ -3,19 +3,27 @@
 Run the repository lint workflow.
 
 ## Instructions
-1. Read repository build files and infer the canonical lint command.
-2. Prefer repo-specific commands over defaults.
-3. Run the narrowest useful fast-feedback validation.
-4. Report:
+1. Run `ruff check .` from the repository root.
+2. If mypy is needed (type errors suspected), also run `mypy src/`.
+3. Report:
    - commands run
    - pass/fail
    - important warnings or errors
    - impacted files
 
+## Commands (in order)
+
+```bash
+ruff check .
+```
+
+For type checking:
+```bash
+mypy src/
+```
+
 ## Fallback order
-- `npm run lint`
-- `pnpm lint`
-- `yarn lint`
 - `ruff check .`
-- `eslint .`
-- `make lint`
+- `ruff check src/`
+- `flake8 src/`
+- `mypy src/`

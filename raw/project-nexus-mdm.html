@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Nexus - Draft MDM Plan</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --surface: #ffffff;
+      --surface-2: #f2efe9;
+      --text: #1f2937;
+      --muted: #5b6470;
+      --accent: #0f766e;
+      --border: #d6d3d1;
+      --warn: #92400e;
+      --good: #166534;
+      --shadow: 0 8px 24px rgba(0,0,0,0.06);
+      --max: 1100px;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, Arial, sans-serif; background: var(--bg); color: var(--text); line-height:1.6; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 32px 20px 64px; }
+    .hero, section { background: var(--surface); border:1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); }
+    .hero { padding: 28px; margin-bottom: 20px; }
+    section { padding: 24px; margin: 18px 0; }
+    h1,h2,h3 { line-height:1.2; }
+    h1 { font-size: 2rem; margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin: 0 0 14px; color: var(--accent); }
+    h3 { font-size: 1rem; margin: 18px 0 8px; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background: #dff4f1; color: #115e59; font-size: .85rem; margin: 4px 8px 0 0; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; }
+    .card { background: var(--surface-2); border:1px solid var(--border); border-radius: 14px; padding: 16px; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border:1px solid var(--border); padding: 10px 12px; text-align:left; vertical-align: top; }
+    th { background: #e9f5f3; }
+    code { background:#eef2f7; padding:2px 6px; border-radius:6px; }
+    .note { border-left: 4px solid var(--warn); background: #fff7ed; padding: 14px 16px; border-radius: 10px; }
+    .good { border-left-color: var(--good); background: #f0fdf4; }
+    ul { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Project Nexus - Draft Master Data Management Plan</h1>
+      <p class="muted">Drafted for the Data Lake and Data Wiki workstream as a MySQL-first curated analytics platform. This draft assumes the Data Lake is the single integration backbone, Governance is the likely reporting access layer, and published reporting outputs must remain reconcilable to auditable snapshots held in the Data Lake.</p>
+      <div>
+        <span class="pill">Status: Draft</span>
+        <span class="pill">Owner: Michael Alo</span>
+        <span class="pill">Platform stance: MySQL-first curated analytics platform</span>
+        <span class="pill">Reporting stance: Governance-facing, Lake-backed snapshots</span>
+      </div>
+    </div>
+
+
+    <section>
+      <h2>1. Relationship to architecture</h2>
+      <p>This MDM is the control layer that makes the architecture operational. It defines what is mastered, how versions are governed, how changes are approved, and how curated datasets stay reproducible across modules and reporting outputs.</p>
+    </section>
+
+    <section>
+      <h2>1. Summary recommendation</h2>
+      <p>The immediate target is not a true lakehouse. It is a curated analytics platform that behaves like a controlled Data Lake operationally: one-way ingestion from source systems, standardised and versioned curated layers, reusable Lake Functions, lineage, MDM, access control, and auditable reporting snapshots.</p>
+      <p>In this model, MySQL stores structured data, reference data, master data, reconciled snapshots, and reporting-support datasets. Governance consumes certified outputs for reporting and compliance workflows, while the Data Lake remains the integration and control backbone.</p>
+    </section>
+
+
+    <section>
+      <h2>2. Why this is not a true lakehouse yet</h2>
+      <p>The current problem is not primarily storage scale; it is governance, traceability, and controlled cross-module reuse. A curated MySQL-first platform gives us the fastest path to a reliable operating model, while still preserving the option to move to Azure when storage/compute separation, semi-structured data volume, or orchestration complexity actually justify it.</p>
+      <p>This MDM is therefore written for a controlled Data Lake operational model, not for a broad lakehouse. It focuses on clear masters, versioned reference data, reproducible history, and explicit approval workflows.</p>
+    </section>
+
+    <section>
+      <h2>2. Scope and purpose</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Purpose</h3>
+          <p>Define how canonical business entities are governed, versioned, documented, changed, and consumed across Project Nexus.</p>
+        </div>
+        <div class="card">
+          <h3>In scope</h3>
+          <p>Canonical entities, reference data, source ownership, quality rules, effective dating, lineage, approvals, access control, reconciliation, and change management.</p>
+        </div>
+        <div class="card">
+          <h3>Out of scope</h3>
+          <p>Specialist actuarial, accounting, HKFRS17, HKRBC, transactional, and Governance workflow logic. Those remain Module Functions unless later proven generic.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Design assumptions</h2>
+      <ul>
+        <li>The Data Lake is the hub-and-spoke backbone for all inter-system exchange.</li>
+        <li>The Core Admin DB remains outside Nexus and feeds the platform one-way only.</li>
+        <li>The near-term platform is MySQL-first, with Python routines and GitLab-backed documentation and change control.</li>
+        <li>Reporting marts are likely to sit in Governance, but the underlying published reporting snapshots must remain persisted in the Data Lake.</li>
+        <li>Lake Functions are limited to generic reusable data-engineering and governance controls.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. Data domains to master first</h2>
+      <p>The first mastering wave should focus on domains reused across several modules and needed for reconciliation, joins, access control, and downstream reporting.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Why first</th>
+            <th>Likely source of record</th>
+            <th>Immediate consumers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Customer</td>
+            <td>Cross-module identity, PDPO sensitivity, deduplication requirement</td>
+            <td>Core Admin DB</td>
+            <td>Governance, Cashfluid, reporting</td>
+          </tr>
+          <tr>
+            <td>Policy</td>
+            <td>Central business grain for actuarial, finance, reporting, compliance</td>
+            <td>Core Admin DB</td>
+            <td>All major modules</td>
+          </tr>
+          <tr>
+            <td>Product</td>
+            <td>Needed for mapping, cohorts, pricing families, disclosures</td>
+            <td>Core Admin DB / product reference</td>
+            <td>Cashfluid, Moody's 2.x, Governance</td>
+          </tr>
+          <tr>
+            <td>Counterparty</td>
+            <td>Needed for investment, reinsurance, transactional work</td>
+            <td>External / transactional reference</td>
+            <td>Transactional, HKRBC, Governance</td>
+          </tr>
+          <tr>
+            <td>Chart of Accounts mapping</td>
+            <td>Needed for cross-system finance consistency</td>
+            <td>Sun 2.x</td>
+            <td>Sun 2.x, Moody's 2.x, reporting</td>
+          </tr>
+          <tr>
+            <td>Currency and FX calendars</td>
+            <td>Needed for valuation, retranslation, reporting</td>
+            <td>Reference data source</td>
+            <td>Sun 2.x, HKRBC, Moody's 2.x</td>
+          </tr>
+          <tr>
+            <td>Calendar</td>
+            <td>Needed for period close, snapshots, time buckets, audit cuts</td>
+            <td>Reference data source</td>
+            <td>All modules</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>5. Canonical model rules</h2>
+      <ul>
+        <li>Each mastered entity must have a canonical identifier, business key, source-system key set, status, effective-from, effective-to, created timestamp, updated timestamp, and provenance fields.</li>
+        <li>Every attribute must be tagged as required, optional, derived, reference-only, or sensitive.</li>
+        <li>Sensitive fields must be classified for PDPO handling, masking rules, and access restrictions.</li>
+        <li>Historical states must be queryable. Type 2-style versioning or equivalent effective-dated history is required for mastered entities.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6. Zones and certification</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Zone</th>
+            <th>Purpose</th>
+            <th>Allowed content</th>
+            <th>Promotion rule</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Raw</td>
+            <td>Faithful landing of source extracts</td>
+            <td>CDC extracts, external feed payloads, module outputs as received</td>
+            <td>No business reinterpretation; ingestion validated only</td>
+          </tr>
+          <tr>
+            <td>Standardised</td>
+            <td>Cleaned, typed, deduplicated, conformed structures</td>
+            <td>Normalised source tables, mapped code lists, base conformed entities</td>
+            <td>Schema, format, and completeness checks pass</td>
+          </tr>
+          <tr>
+            <td>Curated / Gold</td>
+            <td>Certified reusable business-ready datasets</td>
+            <td>Mastered entities, shared dimensions, validated facts, reusable data products</td>
+            <td>Reconciliation, lineage, owner approval, quality threshold pass</td>
+          </tr>
+          <tr>
+            <td>Reporting snapshot</td>
+            <td>Immutable, versioned evidence behind published reports</td>
+            <td>Audit-stamped report datasets and extracts</td>
+            <td>Generated only from certified curated outputs and release-tagged</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note good">
+        <strong>Recommendation:</strong> even if reporting marts live in Governance, the reporting snapshot zone should remain inside the Data Lake boundary for auditability and replay.
+      </div>
+    </section>
+
+    <section>
+      <h2>7. Recommended Lake Functions registry</h2>
+      <div class="grid">
+        <div class="card"><h3>Recommend now</h3><p>Ingestion, standardisation, deduplication, MDM survivorship, reference data versioning, code-list harmonisation, snapshotting, lineage capture, access governance, and data quality controls.</p></div>
+        <div class="card"><h3>Do not centralise now</h3><p>Liability cash-flow projection, journal validation against specialist posting rules, CSM roll-forward logic, HKRBC capital calculations, transaction modelling, and Governance attestation workflow.</p></div>
+        <div class="card"><h3>Tie-break rule</h3><p>If the logic is generic and reusable, keep it in the Lake. If it depends on actuarial, accounting, regulatory, or transaction-specific meaning, keep it in the relevant module.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>8. Governance roles</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Responsibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Data owner</td><td>Business accountability for semantic correctness and usage of a domain.</td></tr>
+          <tr><td>Data steward</td><td>Operates quality rules, definitions, issue management, and business glossary upkeep.</td></tr>
+          <tr><td>Data custodian</td><td>Technical operation of storage, processing, security, and recoverability.</td></tr>
+          <tr><td>Module owner</td><td>Approves downstream impact when a change affects module inputs, outputs, or logic.</td></tr>
+          <tr><td>Governance reviewer</td><td>Approves changes affecting regulatory outputs, PDPO controls, disclosures, or attestation requirements.</td></tr>
+          <tr><td>Wiki owner</td><td>Ensures documentation is synced to methodology and MDM changes.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>9. Change-control workflow linked to MDM</h2>
+      <ol>
+        <li><strong>Raise change request:</strong> every schema, semantic, mapping, quality-rule, masking-rule, or reporting-methodology change starts as a GitLab issue.</li>
+        <li><strong>Assess impact:</strong> identify affected domains, datasets, modules, reports, backfills, controls, and approvals.</li>
+        <li><strong>Update artefacts together:</strong> MDM entry, Data Wiki page, lineage metadata, quality rules, and Lake Functions Registry must be updated in the same change set.</li>
+        <li><strong>Approve:</strong> domain owner, affected module owner, Data Lake owner, and Governance reviewer if compliance or reporting is affected.</li>
+        <li><strong>Implement:</strong> deploy SQL, Python, mapping, and documentation changes as one tagged release.</li>
+        <li><strong>Validate:</strong> run reconciliation checks, regression comparisons, and required human-in-the-loop sign-off.</li>
+        <li><strong>Version and publish:</strong> mark effective-from dates, retain prior versions, and publish a changelog entry in the Wiki.</li>
+      </ol>
+      <div class="note">
+        <strong>Control rule:</strong> no data-methodology change is complete until code, Wiki, MDM, lineage metadata, and approvals are all updated in the same controlled release.
+      </div>
+    </section>
+
+    <section>
+      <h2>10. Data quality and reconciliation</h2>
+      <ul>
+        <li>Each curated dataset must have named quality checks for completeness, uniqueness, validity, referential integrity, and timeliness.</li>
+        <li>Every key published metric must reconcile backward to the source system and forward to consuming reports.</li>
+        <li>Breaks must be logged, triaged, assigned, and closed with root cause and corrective action.</li>
+        <li>Report snapshots must store the extract timestamp, source cut, transformation version, approver, and release identifier.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>11. Wiki maintenance model</h2>
+      <p>The Data Wiki should be coupled to the GitLab repository used for pipeline code and MDM definitions. Each major domain, Lake Function, source system, and curated dataset should have a dedicated page with ownership, refresh cadence, schema summary, quality rules, downstream consumers, and change history.</p>
+      <p>The Coreflexi wiki can remain separate, but the Data Lake wiki should maintain stable references to it and surface any upstream changes that alter downstream assumptions.</p>
+    </section>
+
+    <section>
+      <h2>12. Decisions deferred</h2>
+      <ul>
+        <li>Exact role split between Data Lake, Coreflexi, and module owners for short-term reporting-period functions.</li>
+        <li>Precise project lead versus tech-review workflow.</li>
+        <li>Final Governance app-to-module bindings in detail.</li>
+        <li>Possible future Azure migration criteria and operating model.</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

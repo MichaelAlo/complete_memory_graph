@@ -1,0 +1,7 @@
+config
+curate
+ingest
+lib
+quality
+snapshot
+standardise
